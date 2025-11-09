@@ -38,11 +38,12 @@ const AdminFeesPage = () => {
             const [feesResult, studentsResult] = await Promise.all([
                 supabase
                     .from('fees')
-                    .select('id, amount, due_date, status, payment_date, student_id, students(id, full_name)')
+                    .select('*, profiles(id, full_name)')
                     .order('due_date', { ascending: false }),
                 supabase
-                    .from('students')
+                    .from('profiles')
                     .select('id, full_name')
+                    .eq('role', 'Student')
                     .order('full_name')
             ]);
     
@@ -95,8 +96,10 @@ const AdminFeesPage = () => {
         const feeData = Object.fromEntries(formData.entries());
         
         const dataToSubmit = {
-            ...feeData,
-            payment_date: feeData.status === 'Paid' ? new Date().toISOString() : null,
+            student_id: feeData.student_id,
+            amount: feeData.amount,
+            due_date: feeData.due_date,
+            status: feeData.status,
         };
 
         let error;
@@ -152,7 +155,7 @@ const AdminFeesPage = () => {
                                     <motion.tr key={fee.id} className="hover:bg-base-200 dark:hover:bg-dark-base-300/50 transition-colors" variants={itemVariants}>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                             <Link to={`/fees/${fee.id}`} className="text-primary hover:text-primary-focus dark:text-dark-primary dark:hover:text-dark-primary-focus">
-                                                {fee.students?.full_name || 'N/A'}
+                                                {fee.profiles?.full_name || 'N/A'}
                                             </Link>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-base-content-secondary dark:text-dark-base-content-secondary">{`$${parseFloat(fee.amount).toFixed(2)}`}</td>

@@ -36,23 +36,22 @@ function AdminDashboard() {
             try {
                 const [
                     studentsRes, roomsRes, maintenanceRes, feesRes,
-                    noticesRes, paymentsRes, paidFeesRes
+                    noticesRes, paymentsRes
                 ] = await Promise.all([
-                    supabase.from('students').select('*', { count: 'exact', head: true }),
-                    supabase.from('rooms').select('status'),
+                    supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'Student'),
+                    supabase.from('rooms').select('id, capacity, status'),
                     supabase.from('maintenance_requests').select('*', { count: 'exact', head: true }).eq('status', 'Pending'),
                     supabase.from('fees').select('*', { count: 'exact', head: true }).eq('status', 'Overdue'),
                     supabase.from('notices').select('id, title, created_at').limit(5).order('created_at', { ascending: false }),
-                    supabase.from('payments').select('id, amount, paid_on, fees(students(full_name))').limit(5).order('paid_on', { ascending: false }),
-                    supabase.from('fees').select('amount, created_at').eq('status', 'Paid')
+                    supabase.from('payments').select('id, amount, paid_on, fees(id, student_id, profiles(full_name))').limit(5).order('paid_on', { ascending: false }),
                 ]);
 
                 // Process Stats
-                const totalRooms = roomsRes.data?.length || 0;
-                const occupiedRooms = roomsRes.data?.filter(r => r.status === 'Occupied').length || 0;
+                const totalCapacity = roomsRes.data?.reduce((acc, room) => acc + room.capacity, 0) || 0;
+                const occupiedRoomsCount = roomsRes.data?.filter(r => r.status === 'Occupied').length || 0;
                 setStats({
                     totalStudents: studentsRes.count || 0,
-                    occupancyRate: totalRooms > 0 ? Math.round((occupiedRooms / totalRooms) * 100) : 0,
+                    occupancyRate: totalCapacity > 0 ? Math.round((occupiedRoomsCount / roomsRes.data.length) * 100) : 0,
                     pendingMaintenance: maintenanceRes.count || 0,
                     overdueFees: feesRes.count || 0
                 });
@@ -64,7 +63,10 @@ function AdminDashboard() {
                 setRecentPayments(paymentsRes.data || []);
 
                 // Process Chart Data
-                const monthlyCollections = (paidFeesRes.data || []).reduce((acc, fee) => {
+                const { data: paidFeesRes, error: paidFeesError } = await supabase.from('fees').select('amount, created_at').eq('status', 'Paid');
+                if(paidFeesError) throw paidFeesError;
+
+                const monthlyCollections = (paidFeesRes || []).reduce((acc, fee) => {
                     const month = new Date(fee.created_at).toLocaleString('default', { month: 'short', year: '2-digit' });
                     acc[month] = (acc[month] || 0) + parseFloat(fee.amount);
                     return acc;
@@ -112,13 +114,13 @@ function AdminDashboard() {
                                 <Tooltip
                                     cursor={{ fill: 'rgba(128,128,128,0.1)' }}
                                     contentStyle={{
-                                        backgroundColor: 'var(--tw-prose-bg, #fff)',
-                                        border: '1px solid var(--tw-prose-invert-bg, #ddd)',
+                                        backgroundColor: 'var(--color-bg-base-100)',
+                                        border: '1px solid var(--color-bg-base-300)',
                                         borderRadius: '0.5rem'
                                     }}
                                 />
                                 <Legend />
-                                <Bar dataKey="Collection" fill="var(--color-primary, #4f46e5)" />
+                                <Bar dataKey="Collection" fill="var(--color-primary)" />
                             </BarChart>
                         </ResponsiveContainer>
                     }
@@ -152,7 +154,7 @@ function AdminDashboard() {
                             {loading ? <tr><td colSpan="3" className="text-center py-10"><Loader className="animate-spin mx-auto" /></td></tr> :
                                 recentPayments.length > 0 ? recentPayments.map(payment => (
                                     <tr key={payment.id} className="border-b border-base-200 dark:border-dark-base-300 last:border-0">
-                                        <td className="py-3 pr-4 text-sm font-medium text-base-content dark:text-dark-base-content">{payment.fees?.students?.full_name || 'N/A'}</td>
+                                        <td className="py-3 pr-4 text-sm font-medium text-base-content dark:text-dark-base-content">{payment.fees?.profiles?.full_name || 'N/A'}</td>
                                         <td className="py-3 px-4 text-sm text-base-content-secondary dark:text-dark-base-content-secondary">{new Date(payment.paid_on).toLocaleString()}</td>
                                         <td className="py-3 pl-4 text-sm font-semibold text-right text-green-600 dark:text-green-400">{`$${parseFloat(payment.amount).toFixed(2)}`}</td>
                                     </tr>

@@ -29,65 +29,18 @@ const MyAttendancePage = () => {
         if (!studentId) return;
         setLoading(true);
         setError('');
-
-        // The original RPC call `get_monthly_attendance_for_student` is failing due to a server-side error
-        // (column "is_admin" does not exist). As the SQL function cannot be modified,
-        // this logic is re-implemented on the client side to fetch the same data.
         try {
-            const firstDayOfMonth = new Date(Date.UTC(currentYear, currentMonth, 1));
-            const lastDayOfMonth = new Date(Date.UTC(currentYear, currentMonth + 1, 1));
-
-            const { data: sessions, error: sessionsError } = await supabase
-                .from('attendance_sessions')
-                .select('id, date')
-                .gte('date', firstDayOfMonth.toISOString())
-                .lt('date', lastDayOfMonth.toISOString());
-
-            if (sessionsError) throw sessionsError;
-
-            if (!sessions || sessions.length === 0) {
-                setAttendanceData({});
-                setLoading(false);
-                return;
-            }
-
-            const sessionIds = sessions.map(s => s.id);
-
-            const { data: records, error: recordsError } = await supabase
-                .from('attendance_records')
-                .select('status, session_id')
-                .eq('student_id', studentId)
-                .in('session_id', sessionIds);
-
-            if (recordsError) throw recordsError;
-
-            const dailyRecords = {};
-            records.forEach(record => {
-                const session = sessions.find(s => s.id === record.session_id);
-                if (session) {
-                    const dayOfMonth = new Date(session.date).getUTCDate();
-                    if (!dailyRecords[dayOfMonth]) {
-                        dailyRecords[dayOfMonth] = [];
-                    }
-                    dailyRecords[dayOfMonth].push(record.status);
-                }
+            const { data, error: rpcError } = await supabase.rpc('get_monthly_attendance', {
+                p_student_id: studentId,
+                p_year: currentYear,
+                p_month: currentMonth + 1 // JS month is 0-indexed, psql is 1-indexed
             });
 
-            const statusPriority = { 'Holiday': 4, 'Absent': 3, 'Leave': 2, 'Present': 1 };
-            const finalAttendance = {};
-            for (const day in dailyRecords) {
-                const statuses = dailyRecords[day];
-                if (statuses.length > 0) {
-                    const highestPriorityStatus = statuses.reduce((a, b) => 
-                        (statusPriority[a] || 0) > (statusPriority[b] || 0) ? a : b
-                    );
-                    finalAttendance[day] = highestPriorityStatus;
-                }
-            }
+            if (rpcError) throw rpcError;
             
-            setAttendanceData(finalAttendance);
+            setAttendanceData(data || {});
         } catch (e) {
-            setError('Failed to fetch attendance data. This may be due to row-level security policies. Please contact an administrator.');
+            setError('Failed to fetch attendance data. This may be due to row-level security policies or a missing function. Please contact an administrator.');
             console.error(e);
             setAttendanceData({});
         } finally {

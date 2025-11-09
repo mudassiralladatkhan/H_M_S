@@ -15,6 +15,7 @@ const statusStyles = {
 const FeeDetailPage = () => {
     const { id } = useParams();
     const [fee, setFee] = useState(null);
+    const [payment, setPayment] = useState(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -23,14 +24,28 @@ const FeeDetailPage = () => {
             setLoading(true);
             const { data, error } = await supabase
                 .from('fees')
-                .select('*, students(full_name)')
+                .select('*, profiles(full_name)')
                 .eq('id', id)
                 .single();
 
             if (error) {
                 toast.error('Fee record not found.');
-            } else {
-                setFee(data);
+                setLoading(false);
+                return;
+            }
+            
+            setFee(data);
+
+            if (data.status === 'Paid') {
+                const { data: paymentData, error: paymentError } = await supabase
+                    .from('payments')
+                    .select('*')
+                    .eq('fee_id', id)
+                    .maybeSingle();
+                
+                if (!paymentError) {
+                    setPayment(paymentData);
+                }
             }
             setLoading(false);
         };
@@ -46,8 +61,8 @@ const FeeDetailPage = () => {
     }
 
     return (
-        <DetailPageLayout title={`Fee Record for ${fee.students.full_name}`} backTo="/fees">
-            <DetailItem label="Student Name" value={fee.students.full_name} />
+        <DetailPageLayout title={`Fee Record for ${fee.profiles.full_name}`} backTo="/fees">
+            <DetailItem label="Student Name" value={fee.profiles.full_name} />
             <DetailItem label="Amount" value={`$${parseFloat(fee.amount).toFixed(2)}`} />
             <DetailItem label="Due Date" value={new Date(fee.due_date).toLocaleDateString()} />
             <DetailItem label="Status">
@@ -55,7 +70,8 @@ const FeeDetailPage = () => {
                     {fee.status}
                 </span>
             </DetailItem>
-            <DetailItem label="Payment Date" value={fee.status === 'Paid' && fee.payment_date ? new Date(fee.payment_date).toLocaleDateString() : 'N/A'} />
+            <DetailItem label="Payment Date" value={payment ? new Date(payment.paid_on).toLocaleDateString() : 'N/A'} />
+            <DetailItem label="Payment Method" value={payment ? payment.payment_method : 'N/A'} />
         </DetailPageLayout>
     );
 };

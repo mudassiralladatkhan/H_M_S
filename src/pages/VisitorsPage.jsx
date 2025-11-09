@@ -36,11 +36,12 @@ const VisitorsPage = () => {
             const [visitorsResult, studentsResult] = await Promise.all([
                 supabase
                     .from('visitors')
-                    .select('id, visitor_name, student_id, check_in_time, check_out_time, status, students(id, full_name)')
+                    .select('*, profiles(id, full_name)')
                     .order('check_in_time', { ascending: false }),
                 supabase
-                    .from('students')
+                    .from('profiles')
                     .select('id, full_name')
+                    .eq('role', 'Student')
                     .order('full_name')
             ]);
     
@@ -149,7 +150,7 @@ const VisitorsPage = () => {
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                             <Link to={`/visitors/${visitor.id}`} className="text-primary hover:text-primary-focus dark:text-dark-primary dark:hover:text-dark-primary-focus">{visitor.visitor_name}</Link>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-base-content-secondary dark:text-dark-base-content-secondary">{visitor.students?.full_name || 'N/A'}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-base-content-secondary dark:text-dark-base-content-secondary">{visitor.profiles?.full_name || 'N/A'}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-base-content-secondary dark:text-dark-base-content-secondary">{new Date(visitor.check_in_time).toLocaleString()}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-base-content-secondary dark:text-dark-base-content-secondary">{visitor.check_out_time ? new Date(visitor.check_out_time).toLocaleString() : 'N/A'}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm">

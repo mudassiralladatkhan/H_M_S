@@ -31,23 +31,23 @@ function App() {
                 <Route path="/signup" element={<SignUpPage />} />
                 <Route path="/" element={<ProtectedRoute />}>
                     <Route element={<MainLayout />}>
-                        <Route path="/" element={<DashboardPage />} />
-                        <Route path="/students" element={<StudentsPage />} />
-                        <Route path="/students/:id" element={<StudentDetailPage />} />
-                        <Route path="/rooms" element={<RoomsPage />} />
-                        <Route path="/rooms/:id" element={<RoomDetailPage />} />
-                        <Route path="/allocation" element={<RoomAllocationPage />} />
-                        <Route path="/fees" element={<FeesPage />} />
-                        <Route path="/fees/:id" element={<FeeDetailPage />} />
-                        <Route path="/visitors" element={<VisitorsPage />} />
-                        <Route path="/visitors/:id" element={<VisitorDetailPage />} />
-                        <Route path="/maintenance" element={<MaintenancePage />} />
-                        <Route path="/maintenance/:id" element={<MaintenanceDetailPage />} />
-                        <Route path="/reports" element={<ReportsPage />} />
-                        <Route path="/notices" element={<NoticesPage />} />
-                        <Route path="/attendance" element={<AttendancePage />} />
-                        <Route path="/my-attendance" element={<MyAttendancePage />} />
-                        <Route path="/profile" element={<ProfilePage />} />
+                        <Route index element={<DashboardPage />} />
+                        <Route path="students" element={<StudentsPage />} />
+                        <Route path="students/:id" element={<StudentDetailPage />} />
+                        <Route path="rooms" element={<RoomsPage />} />
+                        <Route path="rooms/:id" element={<RoomDetailPage />} />
+                        <Route path="allocation" element={<RoomAllocationPage />} />
+                        <Route path="fees" element={<FeesPage />} />
+                        <Route path="fees/:id" element={<FeeDetailPage />} />
+                        <Route path="visitors" element={<VisitorsPage />} />
+                        <Route path="visitors/:id" element={<VisitorDetailPage />} />
+                        <Route path="maintenance" element={<MaintenancePage />} />
+                        <Route path="maintenance/:id" element={<MaintenanceDetailPage />} />
+                        <Route path="reports" element={<ReportsPage />} />
+                        <Route path="notices" element={<NoticesPage />} />
+                        <Route path="attendance" element={<AttendancePage />} />
+                        <Route path="my-attendance" element={<MyAttendancePage />} />
+                        <Route path="profile" element={<ProfilePage />} />
                     </Route>
                 </Route>
             </Routes>

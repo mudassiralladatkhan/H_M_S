@@ -4,10 +4,9 @@ import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
 import PageHeader from '../components/ui/PageHeader';
-import Modal from '../components/ui/Modal';
 import EmptyState from '../components/ui/EmptyState';
 import SegmentedControl from '../components/ui/SegmentedControl';
-import { Loader, Edit, Trash2, Users, Search } from 'lucide-react';
+import { Loader, Users, Search } from 'lucide-react';
 import { useDebounce } from '../hooks/useDebounce';
 
 const containerVariants = {
@@ -24,9 +23,6 @@ const StudentsPage = () => {
     const [students, setStudents] = useState([]);
     const [allocatedStudentIds, setAllocatedStudentIds] = useState(new Set());
     const [loading, setLoading] = useState(true);
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [formLoading, setFormLoading] = useState(false);
-    const [currentStudent, setCurrentStudent] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState('all');
     const debouncedSearchTerm = useDebounce(searchTerm, 300);
@@ -36,8 +32,9 @@ const StudentsPage = () => {
             setLoading(true);
             const [studentsResult, allocationsResult] = await Promise.all([
                 supabase
-                    .from('students')
+                    .from('profiles')
                     .select('id, full_name, email, course, contact, created_at')
+                    .eq('role', 'Student')
                     .order('created_at', { ascending: false }),
                 supabase
                     .from('room_allocations')
@@ -89,53 +86,6 @@ const StudentsPage = () => {
         return filtered;
     }, [students, debouncedSearchTerm, filterStatus, allocatedStudentIds]);
 
-    const openAddModal = () => {
-        setCurrentStudent(null);
-        setIsModalOpen(true);
-    };
-
-    const openEditModal = (student) => {
-        setCurrentStudent(student);
-        setIsModalOpen(true);
-    };
-
-    const handleDelete = async (studentId) => {
-        if (window.confirm('Are you sure you want to delete this student?')) {
-            const { error } = await supabase.from('students').delete().eq('id', studentId);
-            if (error) {
-                toast.error(error.message);
-            } else {
-                toast.success('Student deleted successfully.');
-                fetchData();
-            }
-        }
-    };
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setFormLoading(true);
-        const formData = new FormData(e.target);
-        const studentData = Object.fromEntries(formData.entries());
-
-        let error;
-        if (currentStudent) {
-            const { error: updateError } = await supabase.from('students').update(studentData).eq('id', currentStudent.id);
-            error = updateError;
-        } else {
-            const { error: insertError } = await supabase.from('students').insert([studentData]);
-            error = insertError;
-        }
-
-        if (error) {
-            toast.error(error.message);
-        } else {
-            toast.success(`Student ${currentStudent ? 'updated' : 'added'} successfully!`);
-            fetchData();
-            setIsModalOpen(false);
-        }
-        setFormLoading(false);
-    };
-
     const filterOptions = [
         { label: 'All Students', value: 'all' },
         { label: 'Allocated', value: 'allocated' },
@@ -144,11 +94,7 @@ const StudentsPage = () => {
 
     return (
         <>
-            <PageHeader
-                title="Student Management"
-                buttonText="Add Student"
-                onButtonClick={openAddModal}
-            />
+            <PageHeader title="Student Management" />
 
             <div className="mb-6 flex flex-col md:flex-row gap-4">
                 <div className="relative flex-grow">
@@ -180,12 +126,11 @@ const StudentsPage = () => {
                                 <th className="px-6 py-4 text-left text-xs font-semibold text-base-content-secondary dark:text-dark-base-content-secondary uppercase tracking-wider">Contact</th>
                                 <th className="px-6 py-4 text-left text-xs font-semibold text-base-content-secondary dark:text-dark-base-content-secondary uppercase tracking-wider">Course</th>
                                 <th className="px-6 py-4 text-left text-xs font-semibold text-base-content-secondary dark:text-dark-base-content-secondary uppercase tracking-wider">Status</th>
-                                <th className="px-6 py-4 text-right text-xs font-semibold text-base-content-secondary dark:text-dark-base-content-secondary uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
                         {loading ? (
                             <tbody>
-                                <tr><td colSpan="5" className="text-center py-10"><Loader className="mx-auto animate-spin" /></td></tr>
+                                <tr><td colSpan="4" className="text-center py-10"><Loader className="mx-auto animate-spin" /></td></tr>
                             </tbody>
                         ) : filteredStudents.length > 0 ? (
                             <motion.tbody
@@ -213,25 +158,17 @@ const StudentsPage = () => {
                                                 <span className="px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-500/10 text-gray-600 dark:bg-gray-500/20 dark:text-gray-400">Unallocated</span>
                                             )}
                                         </td>
-                                        <td className="px-6 py-5 whitespace-nowrap text-right text-sm font-medium">
-                                            <button onClick={() => openEditModal(student)} className="p-2 text-primary/70 hover:text-primary dark:text-dark-primary/70 dark:hover:text-dark-primary transition-colors">
-                                                <Edit className="w-5 h-5" />
-                                            </button>
-                                            <button onClick={() => handleDelete(student.id)} className="p-2 text-red-500/70 hover:text-red-500 dark:text-red-500/70 dark:hover:text-red-500 transition-colors">
-                                                <Trash2 className="w-5 h-5" />
-                                            </button>
-                                        </td>
                                     </motion.tr>
                                 ))}
                             </motion.tbody>
                         ) : (
                             <tbody>
                                 <tr>
-                                    <td colSpan="5">
+                                    <td colSpan="4">
                                         <EmptyState 
                                             icon={<Users className="w-full h-full" />}
                                             title="No Students Found"
-                                            message={searchTerm ? `No students match your search for "${searchTerm}".` : "Add a student to get started or check your database policies."}
+                                            message={searchTerm ? `No students match your search for "${searchTerm}".` : "No students found for the selected filter."}
                                         />
                                     </td>
                                 </tr>
@@ -240,34 +177,6 @@ const StudentsPage = () => {
                     </table>
                 </div>
             </div>
-
-            <Modal title={currentStudent ? 'Edit Student' : 'Add New Student'} isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <div>
-                        <label htmlFor="full_name" className="block text-sm font-medium text-base-content-secondary dark:text-dark-base-content-secondary">Full Name</label>
-                        <input type="text" name="full_name" id="full_name" defaultValue={currentStudent?.full_name || ''} required className="mt-1 block w-full rounded-lg border-base-300 dark:border-dark-base-300 bg-base-100 dark:bg-dark-base-200 text-base-content dark:text-dark-base-content shadow-sm focus:border-primary focus:ring-primary sm:text-sm" />
-                    </div>
-                    <div>
-                        <label htmlFor="email" className="block text-sm font-medium text-base-content-secondary dark:text-dark-base-content-secondary">Email</label>
-                        <input type="email" name="email" id="email" defaultValue={currentStudent?.email || ''} required className="mt-1 block w-full rounded-lg border-base-300 dark:border-dark-base-300 bg-base-100 dark:bg-dark-base-200 text-base-content dark:text-dark-base-content shadow-sm focus:border-primary focus:ring-primary sm:text-sm" />
-                    </div>
-                    <div>
-                        <label htmlFor="course" className="block text-sm font-medium text-base-content-secondary dark:text-dark-base-content-secondary">Course</label>
-                        <input type="text" name="course" id="course" defaultValue={currentStudent?.course || ''} required className="mt-1 block w-full rounded-lg border-base-300 dark:border-dark-base-300 bg-base-100 dark:bg-dark-base-200 text-base-content dark:text-dark-base-content shadow-sm focus:border-primary focus:ring-primary sm:text-sm" />
-                    </div>
-                    <div>
-                        <label htmlFor="contact" className="block text-sm font-medium text-base-content-secondary dark:text-dark-base-content-secondary">Contact</label>
-                        <input type="tel" name="contact" id="contact" defaultValue={currentStudent?.contact || ''} required className="mt-1 block w-full rounded-lg border-base-300 dark:border-dark-base-300 bg-base-100 dark:bg-dark-base-200 text-base-content dark:text-dark-base-content shadow-sm focus:border-primary focus:ring-primary sm:text-sm" />
-                    </div>
-                    <div className="flex justify-end pt-4 space-x-3">
-                        <button type="button" onClick={() => setIsModalOpen(false)} className="inline-flex justify-center py-2 px-4 border border-base-300 dark:border-dark-base-300 shadow-sm text-sm font-medium rounded-lg text-base-content dark:text-dark-base-content bg-base-100 dark:bg-dark-base-200 hover:bg-base-200 dark:hover:bg-dark-base-300">Cancel</button>
-                        <button type="submit" disabled={formLoading} className="inline-flex justify-center items-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-lg text-primary-content bg-primary hover:bg-primary-focus disabled:opacity-50">
-                            {formLoading && <Loader className="animate-spin h-4 w-4 mr-2" />}
-                            {currentStudent ? 'Save Changes' : 'Add Student'}
-                        </button>
-                    </div>
-                </form>
-            </Modal>
         </>
     );
 };

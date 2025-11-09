@@ -22,7 +22,7 @@ const VisitorDetailPage = () => {
             setLoading(true);
             const { data, error } = await supabase
                 .from('visitors')
-                .select('*, students(full_name)')
+                .select('*, profiles(full_name)')
                 .eq('id', id)
                 .single();
 
@@ -47,7 +47,7 @@ const VisitorDetailPage = () => {
     return (
         <DetailPageLayout title={`Visitor: ${visitor.visitor_name}`} backTo="/visitors">
             <DetailItem label="Visitor Name" value={visitor.visitor_name} />
-            <DetailItem label="Visiting Student" value={visitor.students.full_name} />
+            <DetailItem label="Visiting Student" value={visitor.profiles.full_name} />
             <DetailItem label="Check-in Time" value={new Date(visitor.check_in_time).toLocaleString()} />
             <DetailItem label="Check-out Time" value={visitor.check_out_time ? new Date(visitor.check_out_time).toLocaleString() : 'N/A'} />
             <DetailItem label="Status">

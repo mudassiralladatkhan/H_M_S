@@ -22,9 +22,7 @@ const studentNavLinks = [
     { icon: <LayoutDashboard />, text: 'Dashboard', path: '/' },
     { icon: <User />, text: 'My Profile', path: '/profile' },
     { icon: <ClipboardCheck />, text: 'My Attendance', path: '/my-attendance' },
-    { icon: <BedDouble />, text: 'My Room', path: '/rooms' },
     { icon: <CircleDollarSign />, text: 'My Fees', path: '/fees' },
-    { icon: <UserCheck />, text: 'My Visitors', path: '/visitors' },
     { icon: <Wrench />, text: 'Maintenance', path: '/maintenance' },
     { icon: <Megaphone />, text: 'Notices', path: '/notices' },
 ];
